@@ -15,7 +15,7 @@ on:
       BASE_RESOURCE_NAME:
         required: true
         type: string
-      secrets:
+    secrets:
       AZURE_TENANT_ID:
         required: true
       AZURE_SUBSCRIPTION_ID:
