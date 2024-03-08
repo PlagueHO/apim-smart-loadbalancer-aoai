@@ -1,0 +1,58 @@
+name: deploy-tf-state-bucket
+
+on:
+  workflow_call:
+    inputs:
+      LOCATION_CODE:
+        required: true
+        type: string
+      RESOURCE_GROUP_NAME:
+        required: true
+        type: string
+      STATE_STORAGE_ACCOUNT_NAME:
+        required: true
+        type: string
+    secrets:
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+      AZURE_CLIENT_ID:
+        required: true
+
+jobs:
+  deploy:
+    name: 'Deploy Terraform state bucket'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}        
+
+      - name: Deploy state bucket
+        run: |
+          set -a 
+          source .env.backend
+          az group create \
+            -l ${{ inputs.LOCATION_CODE }} \
+            -n ${{ inputs.RESOURCE_GROUP_NAME }}
+          az storage account create \
+            -n ${{ inputs.STATE_STORAGE_ACCOUNT_NAME }} \
+            -g ${{ inputs.RESOURCE_GROUP_NAME }} \
+            -l ${{ inputs.LOCATION_CODE }} \
+            --sku Standard_LRS \
+            --allow-blob-public-access false
+          az storage container create \
+            --name tfstate \
+            --account-name ${{ inputs.STATE_STORAGE_ACCOUNT_NAME }}

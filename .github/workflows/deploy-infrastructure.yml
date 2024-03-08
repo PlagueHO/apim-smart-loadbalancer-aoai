@@ -1,0 +1,77 @@
+name: deploy-infrastructure
+
+on:
+  workflow_call:
+    inputs:
+      LOCATION_CODE:
+        required: true
+        type: string
+      RESOURCE_GROUP_NAME:
+        required: true
+        type: string
+      STATE_STORAGE_ACCOUNT_NAME:
+        required: true
+        type: string
+      BASE_RESOURCE_NAME:
+        required: true
+        type: string
+      secrets:
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+      AZURE_CLIENT_ID:
+        required: true
+
+jobs:
+  deploy:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    env:
+      TF_VERSION: 1.7.4
+    defaults:
+      run:
+        shell: bash
+        working-directory: ./terraform
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+ 
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+
+      - name: Terraform fmt
+        id: fmt
+        run: terraform fmt -check
+
+      - name: Terraform init
+        id: init
+        run: |
+          set -a 
+          source ../.env.backend
+          terraform init \
+            -backend-config="resource_group_name=${{ inputs.RESOURCE_GROUP_NAME }}" \
+            -backend-config="storage_account_name=${{ inputs.STATE_STORAGE_ACCOUNT_NAME }}"
+
+      - name: Terraform validate
+        id: validate
+        run: terraform validate -no-color
+
+      - name: Terraform plan
+        id: plan
+        run: terraform plan -no-color -var "resource_group_name=${{ inputs.RESOURCE_GROUP_NAME }} -var "base_resource_name=${{ inputs.BASE_RESOURCE_NAME }} -var "location_code=${{ inputs.LOCATION_CODE }}
+
+      - name: Terraform apply
+        id: apply
+        run: terraform apply -auto-approve
+

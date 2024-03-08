@@ -1,0 +1,38 @@
+name: continuous-deployment
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs: 
+  deploy-tf-state-bucket:
+    uses: ./.github/workflows/deploy-tf-state-bucket.yml
+    with:
+      LOCATION_CODE: ${{ vars.LOCATION_CODE }}
+      RESOURCE_GROUP_NAME: ${{ vars.RESOURCE_GROUP_NAME }}
+      STATE_STORAGE_ACCOUNT_NAME: ${{ vars.STATE_STORAGE_ACCOUNT_NAME }}
+    secrets:
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+
+  deploy-infrastructure:
+    uses: ./.github/workflows/deploy-infrastructure.yml
+    needs: deploy-tf-state-bucket
+    with:
+      LOCATION_CODE: ${{ vars.LOCATION_CODE }}
+      RESOURCE_GROUP_NAME: ${{ vars.RESOURCE_GROUP_NAME }}    
+      STATE_STORAGE_ACCOUNT_NAME: ${{ vars.STATE_STORAGE_ACCOUNT_NAME }}
+      BASE_RESOURCE_NAME: ${{ vars.BASE_RESOURCE_NAME }}
+    secrets:
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
