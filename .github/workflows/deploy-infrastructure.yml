@@ -32,7 +32,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: ./terraform
+        working-directory: ../../terraform
 
     steps:
       - name: Checkout
@@ -57,8 +57,6 @@ jobs:
       - name: Terraform init
         id: init
         run: |
-          set -a 
-          source ../.env.backend
           terraform init \
             -backend-config="resource_group_name=${{ inputs.RESOURCE_GROUP_NAME }}" \
             -backend-config="storage_account_name=${{ inputs.STATE_STORAGE_ACCOUNT_NAME }}"
